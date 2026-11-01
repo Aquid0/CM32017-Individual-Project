@@ -1,4 +1,7 @@
-\documentclass[11pt,a4paper]{report}
+\documentclass[11pt,a4paper,titlepage]{article}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[style=bath, backend=biber]{biblatex}
+\addbibresource{references.bib}
 
 \title{Working Title Goes Here \\[1em] \large Project Proposal}
 \author{Matthew La \\ Bachelor of Science in Computer Science \\ The University of Bath}
@@ -6,8 +9,42 @@
 
 \begin{document}
 
+\pagenumbering{roman}
 \maketitle
-
 \tableofcontents
+
+\newpage
+\pagenumbering{arabic}
+
+\section{Problem Description}
+
+Since the public availability of GitHub Copilot and ChatGPT in 2022, AI-assisted code generation has become a staple of software engineering, signalling a shift away from hand-written code. In 2026, Stack Overflow's Developer Survey reported that 83\% of respondents used AI tools at work \parencite{stackoverflow2026}. Furthermore, GitHub also reports that the proportion of pull requests that are initially drafted by AI has more than doubled between March and September 2026 \parencite{github2026octoverse}.
+
+However, studies have shown that much of AI-generated code can be incorrect, insecure, or both. For example, \textcite{vero2025baxbench} show that even OpenAI o1 may perform poorly when writing realistic software, with only 62\% code correctness. Additionally, roughly half of these correct programs still contained vulnerabilities.
+
+Trust in LLM output therefore remains a significant factor for AI adoption. Indeed, while 87\% of Stack Overflow survey respondents report some level of trust in AI's outputs, 48\% trust AI only when they can easily verify its output. 
+
+One of the most common methods for developers to carry out this kind of verification for their software is unit testing. Even so, test-passing AI-generated software patches still contain errors at a noticeable rate, with 29.6\% of these patches behaving differently from the developers' real fix, and 28.6\% of these divergences containing incorrect code \parencite{wang2025solvedissues}.
+
+More fundamentally, tests are a finite set of hand-picked inputs that inevitably miss unconsidered edge cases. As \textcite[p.~7]{dijkstra1970notes} observed, ``program testing can be used to show the presence of bugs, but never to show their absence''. Dijkstra's own later solution to this problem was to explicitly prove a program's correctness \parencite{dijkstra1972humble}.
+
+\textcite{hoare1969axiomatic} gave this idea a formal basis, and formal verification can now guarantee that a program meets its specification for every possible input. However, these guarantees are expensive. The seL4 microkernel's roughly 8,700 lines of C required around 200,000 lines of Isabelle/HOL proof \parencite{klein2009sel4}, and a survey of 216 practitioners identifies scalability and the expertise required as key barriers to adoption \parencite{gleirscher2020formal}.
+
+Yet the idea at the core of verification, stating explicitly what a program should do and checking the code against that statement mechanically, need not carry this cost. Design by contract \parencite{meyer1992dbc} attaches such specifications to each function as preconditions and postconditions, making intended behaviour part of the code rather than leaving it implicit in a set of tests. AI-generated code may make this more valuable still \parencite{kleppmann2025verification}: when an LLM writes the implementation, a contract records intent independently of it, giving the compiler something to check the code against.
+
+\subsection{Aims}
+\subsection{Objectives}
+
+\section{Requirements Specification}
+
+\section{Project Plan}
+\subsection{Gantt Chart}
+\subsection{Tasks and Milestones}
+\subsection{Risk Assessment}
+
+\section{Resources}
+
+\newpage
+\printbibliography
 
 \end{document}
