@@ -34,7 +34,7 @@ Yet the idea at the core of verification, stating explicitly what a program shou
 
 \subsection{Aims}
 
-Existing contract systems either check contracts only at runtime \parencite{findler2002contracts}, sharing the blind spot of tests, or verify them statically at a cost in effort and expertise \parencite{leino2010dafny}. Gradual verification \parencite{bader2018gradual} combines the two, so that contracts proven at compile time hold for every input while the remainder are still enforced at runtime. However, whether contracts enforced this way help an LLM produce correct code, beyond simply stating the constraints, remains unclear.
+Runtime contract systems, such as that of \textcite{findler2002contracts}, only detect violations on inputs that are actually executed, sharing the blind spot of tests. Static verifiers such as Dafny \parencite{leino2010dafny} cover every input, but require the programmer to supply specifications and annotations until the verifier is satisfied. Gradual verification \parencite{bader2018gradual} addresses the weaknesses of each by proving what it can statically and checking the remainder at runtime. For LLM-generated code, existing work uses contracts mainly to guide generation through the prompt \parencite{wang2026vibecontract}, and while runtime checking that feeds violations back to the LLM has been proposed as a future direction, whether enforcing contracts helps beyond simply stating them remains untested.
 
 This project addresses this question. Its aims are to:
 
@@ -44,7 +44,7 @@ This project addresses this question. Its aims are to:
   \item Evaluate whether enforced contracts help an LLM coding agent produce correct code, compared with the same constraints given as comments or not at all, so that the effect of enforcement is separated from the information the constraints carry.
 \end{itemize}
 
-JavaScript is chosen for three reasons. It is the most used programming language in the Stack Overflow Developer Survey, used by 62\% of respondents in 2026 \parencite{stackoverflow2026}. Being dynamically typed, it performs no checks before code runs, so contracts have the most to add. LLMs are also highly familiar with it, so unfamiliar syntax does not confound the evaluation.
+JavaScript is chosen for two reasons. It is the most used programming language in the Stack Overflow Developer Survey, used by 62\% of respondents in 2026 \parencite{stackoverflow2026}, and LLMs are also highly familiar with it, so unfamiliar syntax should not confound the evaluation.
 
 The evaluation is scoped to the function level, the granularity at which contracts are written \parencite{meyer1992dbc}. Extending it to larger, multi-function programs is left as future work.
 
