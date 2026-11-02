@@ -3,7 +3,7 @@
 \usepackage[style=bath, backend=biber]{biblatex}
 \addbibresource{references.bib}
 
-\title{Working Title Goes Here \\[1em] \large Project Proposal}
+\title{TITLE \\[1em] \large Project Proposal}
 \author{Matthew La \\ Bachelor of Science in Computer Science \\ The University of Bath}
 \date{\today}
 
@@ -18,11 +18,11 @@
 
 \section{Problem Description}
 
-Since the public availability of GitHub Copilot and ChatGPT in 2022, AI-assisted code generation has become a staple of software engineering, signalling a shift away from hand-written code. In 2026, Stack Overflow's Developer Survey reported that 83\% of respondents used AI tools at work \parencite{stackoverflow2026}. Furthermore, GitHub also reports that the proportion of pull requests that are initially drafted by AI has more than doubled between March and September 2026 \parencite{github2026octoverse}.
+Since the public availability of GitHub Copilot and ChatGPT in 2022, AI-assisted code generation has become a staple of software engineering, signalling a shift away from hand-written code. In 2026, Stack Overflow's Developer Survey reported that 83\% of respondents used AI tools at work \parencite{stackoverflow2026}. Furthermore, GitHub reports that the proportion of pull requests that are initially drafted by AI has more than doubled between March and September 2026 \parencite{github2026octoverse}.
 
-However, studies have shown that much of AI-generated code can be incorrect, insecure, or both. For example, \textcite{vero2025baxbench} show that even OpenAI o1 may perform poorly when writing realistic software, with only 62\% code correctness. Additionally, roughly half of these correct programs still contained vulnerabilities.
+However, studies have shown that much AI-generated code can be incorrect, insecure, or both. For example, \textcite{vero2025baxbench} show that even OpenAI o1 may perform poorly when writing realistic software, with only 62\% code correctness. Additionally, roughly half of these correct programs still contained vulnerabilities.
 
-Trust in LLM output therefore remains a significant factor for AI adoption. Indeed, while 87\% of Stack Overflow survey respondents report some level of trust in AI's outputs, 48\% trust AI only when they can easily verify its output. 
+Trust in LLM output therefore remains a significant factor for AI adoption. Indeed, while 87\% of Stack Overflow survey respondents report some level of trust in AI's outputs, 48\% trust AI only when they can easily verify its output \parencite{stackoverflow2026}. 
 
 One of the most common methods for developers to carry out this kind of verification for their software is unit testing. Even so, test-passing AI-generated software patches still contain errors at a noticeable rate, with 29.6\% of these patches behaving differently from the developers' real fix, and 28.6\% of these divergences containing incorrect code \parencite{wang2025solvedissues}.
 
@@ -30,12 +30,87 @@ More fundamentally, tests are a finite set of hand-picked inputs that inevitably
 
 \textcite{hoare1969axiomatic} gave this idea a formal basis, and formal verification can now guarantee that a program meets its specification for every possible input. However, these guarantees are expensive. The seL4 microkernel's roughly 8,700 lines of C required around 200,000 lines of Isabelle/HOL proof \parencite{klein2009sel4}, and a survey of 216 practitioners identifies scalability and the expertise required as key barriers to adoption \parencite{gleirscher2020formal}.
 
-Yet the idea at the core of verification, stating explicitly what a program should do and checking the code against that statement mechanically, need not carry this cost. Design by contract \parencite{meyer1992dbc} attaches such specifications to each function as preconditions and postconditions, making intended behaviour part of the code rather than leaving it implicit in a set of tests. AI-generated code may make this more valuable still \parencite{kleppmann2025verification}: when an LLM writes the implementation, a contract records intent independently of it, giving the compiler something to check the code against.
+Yet the idea at the core of verification, stating explicitly what a program should do and checking the code against that statement mechanically, need not carry this cost. Design by contract \parencite{meyer1992dbc} attaches such specifications to each function as preconditions and postconditions, making intended behaviour part of the code rather than leaving it implicit in a set of tests. This suits AI-generated code particularly well: the human states intent as contracts, the LLM writes the implementation, and a checker holds one to the other, the shift from writing code to specifying it that \textcite{kleppmann2025verification} argues AI will make necessary.
 
 \subsection{Aims}
+
+Existing contract systems either check contracts only at runtime \parencite{findler2002contracts}, sharing the blind spot of tests, or verify them statically at a cost in effort and expertise \parencite{leino2010dafny}. Gradual verification \parencite{bader2018gradual} combines the two, so that contracts proven at compile time hold for every input while the remainder are still enforced at runtime. However, whether contracts enforced this way help an LLM produce correct code, beyond simply stating the constraints, remains unclear.
+
+This project addresses this question. Its aims are to:
+
+\begin{itemize}
+  \item Design and implement a subset of JavaScript extended with contracts, which compiles back to the full language, checking each contract at compile time where possible and at runtime otherwise.
+  \item Determine how many contracts can be decided at compile time, and at what runtime cost the remainder are enforced.
+  \item Evaluate whether enforced contracts help an LLM coding agent produce correct code, compared with the same constraints given as comments or not at all, so that the effect of enforcement is separated from the information the constraints carry.
+\end{itemize}
+
+JavaScript is chosen for three reasons. It is the most used programming language in the Stack Overflow Developer Survey, used by 62\% of respondents in 2026 \parencite{stackoverflow2026}. Being dynamically typed, it performs no checks before code runs, so contracts have the most to add. LLMs are also highly familiar with it, so unfamiliar syntax does not confound the evaluation.
+
+The evaluation is scoped to the function level, the granularity at which contracts are written \parencite{meyer1992dbc}. Extending it to larger, multi-function programs is left as future work.
+
 \subsection{Objectives}
 
+The aims will be met through the following objectives:
+
+\begin{enumerate}
+  \item Define the syntax and semantics of a contract language for a subset of JavaScript expressive enough to implement the benchmark tasks.
+  \item Formalise the static analysis for the language, defining the abstract domain, how each construct transforms it, and how loops are handled, with an argument that its results are sound with respect to the language's semantics.
+  \item Implement a compiler that transpiles the language to JavaScript with runtime contract checks, validated by a test suite.
+  \item Implement a static checker that proves or refutes contracts at compile time, validated by testing that no proven contract fails at runtime.
+  \item Measure which contracts can be decided at compile time on independently selected tasks, and characterise those that cannot.
+  \item Compare an LLM agent's hidden-test pass rate with enforced contracts, the same constraints as comments, and no constraints.
+\end{enumerate}
+
 \section{Requirements Specification}
+Each requirement is given one of three priorities: \textbf{must} (essential), \textbf{should} (preferable but not essential), or \textbf{may} (a desirable extension).
+
+\subsection{Functional Requirements}
+
+\subsubsection{Language}
+\begin{itemize}
+  \item The language \textbf{must} support functions, \texttt{let}/\texttt{const}, conditionals, loops, numbers, booleans, strings and arrays.
+  \item The language \textbf{must} support preconditions (\texttt{requires}), postconditions (\texttt{ensures}) and references to the return value (\texttt{result}).
+  \item The language \textbf{should} support \texttt{old()} expressions and loop invariants.
+  \item The language \textbf{may} support quantified contracts over arrays, checked at runtime only.
+\end{itemize}
+
+\subsubsection{Compiler and Runtime Enforcement}
+\begin{itemize}
+  \item The compiler \textbf{must} transpile programs to readable JavaScript.
+  \item The compiler \textbf{must} insert runtime checks for contracts, reporting violations with blame (caller or function).
+  \item The compiler \textbf{must} provide a command-line interface for compiling and running programs.
+  \item The compiler \textbf{should} support three modes: no contracts, all runtime checks, and gradual checking.
+\end{itemize}
+
+\subsubsection{Static Analysis}
+\begin{itemize}
+  \item The checker \textbf{must} classify contracts in loop-free code as proven, refuted or unknown using interval analysis \parencite{moller2026spa}, which tracks a range of possible values for each numeric variable, starting from the function's preconditions and merging ranges where branches join.
+  \item The checker \textbf{should} extend this to loops using widening, narrow ranges using branch conditions, and track array lengths.
+  \item The checker \textbf{may} decide relational contracts in loop-free functions by translating each function and its contracts into a logical formula and checking it with the Z3 SMT solver \parencite{demoura2008z3}, reporting counterexamples for refuted contracts.
+\end{itemize}
+
+\subsubsection{Evaluation}
+
+\begin{itemize}
+  \item The evaluation \textbf{must} use tasks from an existing function-level benchmark, with the benchmark's own tests hidden from the LLM and used to judge correctness.
+  \item The evaluation \textbf{must} fix all contracts before any experimental runs, writing them from each task's description and validating them against its reference solution.
+  \item The evaluation \textbf{must} measure the proportion of incorrect LLM-generated solutions that contracts detect, how many at compile time, and how many correct solutions are wrongly flagged.
+  \item The evaluation \textbf{must} measure runtime overhead with no contract checks, all checks at runtime, and gradual checking.
+  \item The evaluation \textbf{should} compare an LLM agent's hidden-test pass rate across the three conditions, with the same model, prompt and budget and several runs per task, following a pilot study.
+\end{itemize}
+
+\subsection{Non-Functional Requirements}
+\begin{itemize}
+  \item \textbf{Soundness:} a contract classified as proven \textbf{must} never fail at runtime, tested with property-based testing.
+  \item \textbf{Correctness:} the compiler \textbf{must} be covered by an automated test suite.
+  \item \textbf{Reproducibility:} contracts and task selection \textbf{must} be fixed before any experimental runs, with model settings and all runs logged.
+  \item \textbf{Cost:} experiments \textbf{must} stay within an agreed budget.
+\end{itemize}
+
+\subsection{Out of Scope}
+Classes, asynchronous code, modules, closures, exceptions, mutable objects other than arrays, and aliasing, the full standard library, higher-order contracts, and production-scale systems.
+
+The above requirements are subject to change as the project evolves.
 
 \section{Project Plan}
 \subsection{Gantt Chart}
