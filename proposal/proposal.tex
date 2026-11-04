@@ -1,9 +1,15 @@
 \documentclass[11pt,a4paper,titlepage]{article}
 \usepackage[margin=2.5cm]{geometry}
 \usepackage[style=bath, backend=biber]{biblatex}
+\usepackage{pgfgantt}
+\usetikzlibrary{patterns}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{float}
+
 \addbibresource{references.bib}
 
-\title{TITLE \\[1em] \large Project Proposal}
+\title{Gradual Contract Checking for LLM-Generated Code in a JavaScript Subset \\[1em] \large Project Proposal}
 \author{Matthew La \\ Bachelor of Science in Computer Science \\ The University of Bath}
 \date{\today}
 
@@ -20,7 +26,7 @@
 
 Since the public availability of GitHub Copilot and ChatGPT in 2022, AI-assisted code generation has become a staple of software engineering, signalling a shift away from hand-written code. In 2026, Stack Overflow's Developer Survey reported that 83\% of respondents used AI tools at work \parencite{stackoverflow2026}. Furthermore, GitHub reports that the proportion of pull requests that are initially drafted by AI has more than doubled between March and September 2026 \parencite{github2026octoverse}.
 
-However, studies have shown that much AI-generated code can be incorrect, insecure, or both. For example, \textcite{vero2025baxbench} show that even OpenAI o1 may perform poorly when writing realistic software, with only 62\% code correctness. Additionally, roughly half of these correct programs still contained vulnerabilities.
+However, studies have shown that much AI-generated code can be incorrect, insecure, or both. For example, \textcite{vero2025baxbench} show that even OpenAI o1 may perform poorly when writing realistic software, with only 60\% code correctness. Additionally, across models, roughly half of correct programs still contained vulnerabilities.
 
 Trust in LLM output therefore remains a significant factor for AI adoption. Indeed, while 87\% of Stack Overflow survey respondents report some level of trust in AI's outputs, 48\% trust AI only when they can easily verify its output \parencite{stackoverflow2026}. 
 
@@ -34,56 +40,56 @@ Yet the idea at the core of verification, stating explicitly what a program shou
 
 \subsection{Aims}
 
-Runtime contract systems, such as that of \textcite{findler2002contracts}, only detect violations on inputs that are actually executed, sharing the blind spot of tests. Static verifiers such as Dafny \parencite{leino2010dafny} cover every input, but require the programmer to supply specifications and annotations until the verifier is satisfied. Gradual verification \parencite{bader2018gradual} addresses the weaknesses of each by proving what it can statically and checking the remainder at runtime. For LLM-generated code, existing work uses contracts mainly to guide generation through the prompt \parencite{wang2026vibecontract}, and while runtime checking that feeds violations back to the LLM has been proposed as a future direction, whether enforcing contracts helps beyond simply stating them remains untested.
+Runtime contract systems, such as \textcite{findler2002contracts}, share the blind spot of tests, detecting violations only on given inputs. Static verifiers such as Dafny \parencite{leino2010dafny} cover every input, but require the programmer to give specifications and annotations until the verifier is satisfied. Gradual verification \parencite{bader2018gradual} addresses the weaknesses of each by proving what it can statically and checking the remainder at runtime. For LLM-generated code, existing work uses contracts mainly to guide generation through the prompt \parencite{wang2026vibecontract}, and while runtime checking that feeds violations back to the LLM has been proposed as a future direction, whether enforcing contracts helps beyond simply stating them remains untested.
 
 This project addresses this question. Its aims are to:
 
 \begin{itemize}
-  \item Design and implement a subset of JavaScript extended with contracts, which compiles back to the full language, checking each contract at compile time where possible and at runtime otherwise.
-  \item Determine how many contracts can be decided at compile time, and at what runtime cost the remainder are enforced.
-  \item Evaluate whether enforced contracts help an LLM coding agent produce correct code, compared with the same constraints given as comments or not at all, so that the effect of enforcement is separated from the information the constraints carry.
+  \item Show that contracts can be enforced gradually in a JavaScript-like language, checked statically where possible and at runtime otherwise.
+  \item Establish how much contract checking can be moved to compile time, and what enforcing the rest costs.
+  \item Find out whether enforcing contracts helps an LLM produce correct code, separate from the effect of enforcement from the information the contracts carry.
 \end{itemize}
 
 JavaScript is chosen for two reasons. It is the most used programming language in the Stack Overflow Developer Survey, used by 62\% of respondents in 2026 \parencite{stackoverflow2026}, and LLMs are also highly familiar with it, so unfamiliar syntax should not confound the evaluation.
 
 The evaluation is scoped to the function level, the granularity at which contracts are written \parencite{meyer1992dbc}. Extending it to larger, multi-function programs is left as future work.
 
-\subsection{Objectives}
-
-The aims will be met through the following objectives:
-
-\begin{enumerate}
-  \item Define the syntax and semantics of a contract language for a subset of JavaScript expressive enough to implement the benchmark tasks.
-  \item Formalise the static analysis for the language, defining the abstract domain, how each construct transforms it, and how loops are handled, with an argument that its results are sound with respect to the language's semantics.
-  \item Implement a compiler that transpiles the language to JavaScript with runtime contract checks, validated by a test suite.
-  \item Implement a static checker that proves or refutes contracts at compile time, validated by testing that no proven contract fails at runtime.
-  \item Measure which contracts can be decided at compile time on independently selected tasks, and characterise those that cannot.
-  \item Compare an LLM agent's hidden-test pass rate with enforced contracts, the same constraints as comments, and no constraints.
-\end{enumerate}
+If enforcement helps, this supports building contracts into the tools developers use alongside AI coding agents. If not, it suggests that stating constraints matters more than enforcing them, which is useful to researchers designing specification-based workflows for AI-generated code.
 
 \section{Requirements Specification}
-Each requirement is given one of three priorities: \textbf{must} (essential), \textbf{should} (preferable but not essential), or \textbf{may} (a desirable extension).
+
+The project will deliver:
+\begin{itemize}
+  \item a compiler for the contract language, with a CLI and test suite
+  \item a static checker integrated into the compiler
+  \item an evaluation harness, task set and fixed contracts, with experimental results
+  \item the dissertation
+\end{itemize}
+
+Each requirement is given one of three priorities: \textbf{must} (essential), \textbf{should} (preferable but not essential), or \textbf{may} (extension).
 
 \subsection{Functional Requirements}
 
 \subsubsection{Language}
 \begin{itemize}
-  \item The language \textbf{must} support functions, \texttt{let}/\texttt{const}, conditionals, loops, numbers, booleans, strings and arrays.
+  \item The language \textbf{must} support functions, \texttt{let}/\texttt{const}, conditionals, loops, numbers, booleans, strings, arrays and maps.
   \item The language \textbf{must} support preconditions (\texttt{requires}), postconditions (\texttt{ensures}) and references to the return value (\texttt{result}).
+  \item The language \textbf{must} support quantified contracts over arrays, checked at runtime.
   \item The language \textbf{should} support \texttt{old()} expressions and loop invariants.
-  \item The language \textbf{may} support quantified contracts over arrays, checked at runtime only.
 \end{itemize}
 
 \subsubsection{Compiler and Runtime Enforcement}
 \begin{itemize}
   \item The compiler \textbf{must} transpile programs to readable JavaScript.
-  \item The compiler \textbf{must} insert runtime checks for contracts, reporting violations with blame (caller or function).
-  \item The compiler \textbf{must} provide a command-line interface for compiling and running programs.
-  \item The compiler \textbf{should} support three modes: no contracts, all runtime checks, and gradual checking.
+  \item The compiler \textbf{must} insert runtime checks for contracts, reporting violations with blame.
+  \item The compiler \textbf{must} provide a CLI for compiling and running programs.
+  \item The compiler \textbf{must} be covered by an automated test suite.
+  \item The compiler \textbf{must} allow the static checker to be disabled, so that every contract is checked at runtime, and allow contracts to be omitted entirely.
 \end{itemize}
 
 \subsubsection{Static Analysis}
 \begin{itemize}
+  \item The analysis \textbf{must} be specified precisely, defining the abstract domain, how each construct transforms it and how loops are handled, with a clear argument for why its results are sound, supported by property-based testing.
   \item The checker \textbf{must} classify contracts in loop-free code as proven, refuted or unknown using interval analysis \parencite{moller2026spa}, which tracks a range of possible values for each numeric variable, starting from the function's preconditions and merging ranges where branches join.
   \item The checker \textbf{should} extend this to loops using widening, narrow ranges using branch conditions, and track array lengths.
   \item The checker \textbf{may} decide relational contracts in loop-free functions by translating each function and its contracts into a logical formula and checking it with the Z3 SMT solver \parencite{demoura2008z3}, reporting counterexamples for refuted contracts.
@@ -94,30 +100,189 @@ Each requirement is given one of three priorities: \textbf{must} (essential), \t
 \begin{itemize}
   \item The evaluation \textbf{must} use tasks from an existing function-level benchmark, with the benchmark's own tests hidden from the LLM and used to judge correctness.
   \item The evaluation \textbf{must} fix all contracts before any experimental runs, writing them from each task's description and validating them against its reference solution.
-  \item The evaluation \textbf{must} measure the proportion of incorrect LLM-generated solutions that contracts detect, how many at compile time, and how many correct solutions are wrongly flagged.
-  \item The evaluation \textbf{must} measure runtime overhead with no contract checks, all checks at runtime, and gradual checking.
-  \item The evaluation \textbf{should} compare an LLM agent's hidden-test pass rate across the three conditions, with the same model, prompt and budget and several runs per task, following a pilot study.
+  \item The evaluation \textbf{must} measure the proportion of contracts decided at compile time, characterise those that cannot be decided, and measure the runtime overhead with no contract checks, all checks at runtime, and gradual checking.
+  \item The evaluation \textbf{must} compare an LLM agent's hidden-test pass rate across three conditions on a pilot set of tasks, with the same model and task prompt in each condition:
+  \begin{enumerate}
+    \item \emph{No contracts:} the agent is given only the task description.
+    \item \emph{Contracts as comments:} the task's contracts are added to the prompt as comments, but are not checked.
+    \item \emph{Enforced contracts:} the contracts are written in the language and checked by the compiler, statically where possible and at runtime otherwise, with violations reported back to the agent.
+  \end{enumerate}
+  Comparing conditions 1 and 2 measures the effect of the information the contracts carry, and comparing 2 and 3 measures the effect of enforcing them.
+  \item The evaluation \textbf{should} extend this comparison to the full task set, with several runs per task.
+  \item If no API budget is available, or the pilot shows a ceiling effect, the evaluation \textbf{must} instead measure the proportion of incorrect LLM-generated solutions that contracts detect, how many at compile time, and how many correct solutions are wrongly flagged.
 \end{itemize}
 
 \subsection{Non-Functional Requirements}
 \begin{itemize}
   \item \textbf{Soundness:} a contract classified as proven \textbf{must} never fail at runtime, tested with property-based testing.
-  \item \textbf{Correctness:} the compiler \textbf{must} be covered by an automated test suite.
-  \item \textbf{Reproducibility:} contracts and task selection \textbf{must} be fixed before any experimental runs, with model settings and all runs logged.
+  \item \textbf{Reproducibility:} model settings and all experimental runs \textbf{must} be logged.
   \item \textbf{Cost:} experiments \textbf{must} stay within an agreed budget.
 \end{itemize}
 
 \subsection{Out of Scope}
-Classes, asynchronous code, modules, closures, exceptions, mutable objects other than arrays, and aliasing, the full standard library, higher-order contracts, and production-scale systems.
+Classes, asynchronous code, modules, closures, exceptions, mutable objects other than arrays and maps, aliasing, the full standard library, higher-order contracts, and production-scale systems.
 
 The above requirements are subject to change as the project evolves.
 
 \section{Project Plan}
 \subsection{Gantt Chart}
+
+\definecolor{phaseResearch}{RGB}{76,114,176}
+\definecolor{phaseBuild}{RGB}{221,132,82}
+\definecolor{phaseEval}{RGB}{85,168,104}
+\definecolor{phaseWrite}{RGB}{129,114,179}
+\ganttset{
+  research/.style={bar/.append style={fill=phaseResearch}},
+  build/.style={bar/.append style={fill=phaseBuild}},
+  eval/.style={bar/.append style={fill=phaseEval}},
+  write/.style={bar/.append style={fill=phaseWrite}},
+  optional/.style={bar/.append style={fill=phaseBuild!25, draw=phaseBuild, dashed}},
+  contingency/.style={bar/.append style={pattern=north east lines, pattern color=black!45, draw=black!35}},
+  fallback/.style={bar/.append style={fill=phaseEval!25, draw=phaseEval, dashed}},
+}
+
+\begin{figure}[H]
+\centering
+\begin{ganttchart}[
+    time slot format=isodate,
+    time slot unit=day,
+    x unit=0.048cm,
+    y unit title=0.5cm,
+    y unit chart=0.5cm,
+    canvas/.append style={draw=black!30},
+    title/.append style={fill=black!5, draw=black!30},
+    title label font=\footnotesize,
+    bar label font=\footnotesize,
+    group label font=\footnotesize\bfseries,
+    milestone label font=\footnotesize\itshape,
+    bar height=0.6,
+    bar top shift=0.2,
+    bar/.append style={draw=none},
+    group/.append style={fill=black!65, draw=none},
+    group height=0.25,
+    group top shift=0.4,
+    milestone/.append style={fill=red!70!black, draw=none},
+    milestone height=0.6,
+    milestone top shift=0.2,
+    milestone left shift=-3,
+    milestone right shift=3,
+    vgrid={*{30}{draw=none}, {black!15}, *{29}{draw=none}, {black!15}, *{30}{draw=none}, {black!15}, *{30}{draw=none}, {black!15}, *{27}{draw=none}, {black!15}, *{30}{draw=none}, {black!15}, *{29}{draw=none}, {black!15}, *{40}{draw=none}},
+    link/.style={-latex, draw=black!55},
+  ]{2026-10-01}{2027-05-16}
+  \gantttitlecalendar{year, month=shortname} \\
+  % Planning and research
+  \ganttgroup{Planning and research}{2026-10-12}{2026-12-04} \\
+  \ganttbar[research]{Project proposal}{2026-10-12}{2026-11-06} \\
+  \ganttbar[research]{Literature survey}{2026-11-02}{2026-12-04} \\
+  % Implementation
+  \ganttgroup{Implementation}{2026-11-16}{2027-03-26} \\
+  \ganttbar[build]{Language and compiler}{2026-11-16}{2026-12-23}
+  \ganttbar[contingency]{}{2026-12-24}{2027-01-03} \\
+  \ganttbar[build]{Static analysis}{2026-12-07}{2027-03-12}
+  \ganttbar[contingency]{}{2027-03-13}{2027-03-26} \\
+  \ganttbar[optional]{SMT extension (optional)}{2027-03-08}{2027-03-26} \\
+  % Evaluation
+  \ganttgroup{Evaluation}{2027-01-25}{2027-04-09} \\
+  \ganttbar[eval]{Experiment set-up}{2027-01-25}{2027-02-19} \\
+  \ganttbar[eval]{Experiments}{2027-02-22}{2027-04-09}
+  \ganttbar[contingency]{}{2027-04-10}{2027-04-23} \\
+  % Write-up
+  \ganttgroup{Write-up}{2026-12-07}{2027-04-30} \\
+  \ganttbar[write]{Drafting dissertation}{2026-12-07}{2027-04-16} \\
+  \ganttbar[write]{Editing and submission}{2027-04-12}{2027-04-30} \\
+  % Deadlines
+  \ganttmilestone{Proposal (06/11)}{2026-11-06} \\
+  \ganttmilestone{Literature survey (04/12)}{2026-12-04} \\
+  \ganttmilestone{Demonstration (15/02)}{2027-02-15} \\
+  \ganttmilestone{Dissertation (30/04)}{2027-04-30}
+\end{ganttchart}
+\caption{Initial project plan. Diamonds mark submission deadlines. The dashed bar is an optional extension. Hatched segments are contingency time.}
+\label{fig:gantt}
+\end{figure}
+
 \subsection{Tasks and Milestones}
+
+Table~\ref{tab:tasks} gives the dates and estimated effort for each task in Figure~\ref{fig:gantt}, totalling roughly 425 hours excluding the optional SMT extension.
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{4.5pt}
+\begin{tabularx}{\textwidth}{@{}r >{\raggedright}p{2.9cm} l l l r c >{\raggedright\arraybackslash}X@{}}
+\toprule
+\# & Task & Start & End & Buffer & Effort & After & Includes \\
+\midrule
+1 & Project proposal         & 12/10 & 06/11 &       & 25\,h  & --   & problem, requirements, plan \\
+2 & Literature survey        & 02/11 & 04/12 &       & 40\,h  & 1    & related work, static analysis reading, benchmark and technology choices \\
+3 & Language and compiler    & 16/11 & 23/12 & 03/01 & 70\,h  & 1    & syntax, semantics, parser, JS output, runtime checks, blame, tests \\
+4 & Static analysis          & 07/12 & 12/03 & 26/03 & 115\,h & 3    & interval domain, transfer functions, widening, soundness tests \\
+5 & SMT extension (optional) & 08/03 & 26/03 &       & 20\,h  & 4    & Z3 encoding, loop-free only, counterexamples \\
+6 & Experiment set-up        & 25/01 & 19/02 &       & 30\,h  & 3    & task selection, contracts fixed, agent harness \\
+7 & Experiments              & 22/02 & 09/04 & 23/04 & 50\,h  & 4, 6 & coverage, overhead, pilot, full run \\
+8 & Drafting dissertation    & 07/12 & 16/04 &       & 70\,h  & 2    & chapters written alongside the work \\
+9 & Editing and submission   & 12/04 & 30/04 &       & 25\,h  & 8    & revisions, proofreading, submission \\
+\bottomrule
+\end{tabularx}
+\caption{Tasks, dates and estimated effort. End dates act as waypoints, \emph{Buffer} is the end of each task's contingency time (hatched in Figure~\ref{fig:gantt}), and \emph{After} lists the tasks each one builds on.}
+\label{tab:tasks}
+\end{table}
+
+By the progress demonstration on 15/02, the compiler will transpile programs with runtime contract checking and blame (task 3), the static checker will classify contracts in loop-free code (the \textbf{must} part of task 4), and the experiment harness will be running on its first benchmark tasks (task 6).
+
 \subsection{Risk Assessment}
 
+Table~\ref{tab:risks} lists the main risks to the project, with alternative end-points marked where a risk would change what the project delivers.
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.2}
+\setlength{\tabcolsep}{4.5pt}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright}p{4.2cm} c c >{\raggedright\arraybackslash}X@{}}
+\toprule
+Risk & Likelihood & Impact & Mitigation \\
+\midrule
+Static analysis takes longer than planned & Medium & High & Contingency until 26/03, with the SMT extension dropped first \newline \emph{Alternative end-point:} drop loops and evaluate the loop-free checker alone \\
+Other tasks overrun, including through illness & Medium & Medium & Contingency on the compiler and experiments, and Should and May requirements dropped before Musts \\
+No API budget & Medium & High & Open-weight models run on the department's GPU cloud instead \newline \emph{Alternative end-point:} offline detection study on existing LLM solutions \\
+Ceiling effect, where the model already solves nearly every task & Medium & Medium & Detected early by the pilot, then addressed with harder tasks or a weaker model \newline \emph{Alternative end-point:} offline detection study \\
+Static checker is unsound & Low & High & Property-based soundness testing, and all runtime checks kept on during experiments \\
+Benchmark unavailable in JavaScript & Medium & Low & Test inputs and outputs translated, which is largely mechanical, with the benchmark chosen during the literature survey \\
+PC failure or data loss & Low & High & Code on GitHub and the write-up under version control, so work can continue on any machine \\
+\bottomrule
+\end{tabularx}
+\caption{Risks, their likelihood and impact, and how each will be mitigated.}
+\label{tab:risks}
+\end{table}
+
 \section{Resources}
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{@{}l l l@{}}
+\toprule
+Resource & Purpose & Availability \\
+\midrule
+TypeScript and Node.js & Compiler, tests and harness & Free \\
+fast-check & Soundness testing & Free \\
+Z3 \parencite{demoura2008z3} & SMT extension & Free \\
+Git and GitHub & Version control and backup & Free \\
+Personal laptop & Development & Available \\
+Commercial LLM API & Agent experiment & Budget requested \\
+Hex GPU cloud & Open-weight models & Department \\
+Benchmark, such as EvalPlus & Tasks and hidden tests & Free \\
+Supervisor & Semantics expertise & Fortnightly meetings \\
+\textcite{moller2026spa} & Static program analysis Textbook & Free \\
+\bottomrule
+\end{tabular}
+\caption{Resources, sources of expertise and their availability.}
+\label{tab:resources}
+\end{table}
+
+The main limitation is the LLM API budget, which caps the size of the agent experiment. Without it, the fallbacks in Table~\ref{tab:risks} apply.
 
 \newpage
 \printbibliography
