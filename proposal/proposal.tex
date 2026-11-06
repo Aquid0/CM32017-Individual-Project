@@ -40,7 +40,8 @@ Yet the idea at the core of verification, stating explicitly what a program shou
 
 \subsection{Aims}
 
-Runtime contract systems, such as \textcite{findler2002contracts}, share the blind spot of tests, detecting violations only on given inputs. Static verifiers such as Dafny \parencite{leino2010dafny} cover every input, but require the programmer to give specifications and annotations until the verifier is satisfied. Gradual verification \parencite{bader2018gradual} addresses the weaknesses of each by proving what it can statically and checking the remainder at runtime, which has been achieved by Microsoft's Code Contracts for .NET \parencite{fahndrich2010clousot}, but before LLM-generated code. For LLM-generated code, existing work primarily uses contracts to guide generation through the prompt, proposing runtime checking that feeds violations back to the LLM as future work \parencite{wang2026vibecontract}. Execution feedback is known to help LLMs repair their own code \parencite{chen2024selfdebug}, but whether enforcing contracts helps beyond simply stating them remains an open question.
+
+Runtime contract systems \parencite{findler2002contracts} share the blind spot of tests, catching violations only on given inputs, while static verifiers such as Dafny \parencite{leino2010dafny} cover every input but require annotations until the verifier is satisfied. Gradual verification \parencite{bader2018gradual} proves what it can statically and checks the rest at runtime, and Microsoft's Code Contracts combined both kinds of checking for .NET \parencite{fahndrich2010clousot}, though before LLM code generation. For LLM-generated code, contracts have been proposed as a quality-assurance step \parencite{wang2026vibecontract}, and execution feedback is known to help LLMs repair their own code \parencite{chen2024selfdebug}, but whether enforcing contracts helps beyond simply stating them is an open question.
 
 This project addresses this question. Its aims are to:
 
@@ -81,13 +82,13 @@ Each requirement is given one of three priorities: \textbf{must} (essential), \t
   \item The compiler \textbf{must} insert runtime checks for contracts, reporting violations with blame.
   \item The compiler \textbf{must} provide a CLI for compiling and running programs.
   \item The compiler \textbf{must} be covered by an automated test suite.
-  \item The compiler \textbf{must} allow the static checker to be disabled, so that every contract is checked at runtime, and allow contracts to be omitted entirely.
+  \item The compiler \textbf{must} allow the static checker to be disabled, so that every contract is checked at runtime, and also allow contract-free code.
 \end{itemize}
 
 \subsubsection{Static Analysis}
 \begin{itemize}
-  \item The analysis \textbf{must} be specified precisely, defining the abstract domain, how each construct transforms it and how loops are handled, with a clear argument for why its results are sound, supported by property-based testing.
-  \item The checker \textbf{must} classify contracts in loop-free code as proven, refuted or unknown using interval analysis \parencite{moller2026spa}, which tracks a range of possible values for each numeric variable, starting from the function's preconditions and merging ranges where branches join.
+  \item The analysis \textbf{must} be specified, defining the abstract domain, how each construct transforms it and how loops are handled, with a solid argument for soundness, supported by property-based testing.
+  \item The checker \textbf{must} classify contracts in loop-free code as proven, refuted or unknown using interval analysis \parencite{moller2026spa}, which tracks a range of possible values for each numeric variable, starting from the function's preconditions.
   \item The checker \textbf{should} extend this to loops using widening, narrow ranges using branch conditions, and track array lengths.
   \item The checker \textbf{may} decide relational contracts in loop-free functions by translating each function and its contracts into a logical formula and checking it with the Z3 SMT solver \parencite{demoura2008z3}, reporting counterexamples for refuted contracts.
 \end{itemize}
@@ -95,16 +96,15 @@ Each requirement is given one of three priorities: \textbf{must} (essential), \t
 \subsubsection{Evaluation}
 
 \begin{itemize}
-  \item The evaluation \textbf{must} use tasks from an existing function-level benchmark, with the benchmark's own tests hidden from the LLM and used to judge correctness.
+  \item The evaluation \textbf{must} use tasks from an existing function-level benchmark, with the benchmark's own tests hidden from the LLM to judge correctness.
   \item The evaluation \textbf{must} fix all contracts before any experimental runs, writing them from each task's description and validating them against its reference solution.
-  \item The evaluation \textbf{must} measure the proportion of contracts decided at compile time, characterise those that cannot be decided, and measure the runtime overhead with no contract checks, all checks at runtime, and gradual checking.
+  \item The evaluation \textbf{must} measure the proportion of contracts decided at compile time, describe those that cannot be decided, and measure the runtime overhead with no contract checks, all checks at runtime, and gradual checking.
   \item The evaluation \textbf{must} compare an LLM agent's hidden-test pass rate across three conditions on a pilot set of tasks, with the same model and task prompt in each condition:
   \begin{enumerate}
     \item \emph{No contracts:} the agent has only the task description.
-    \item \emph{Contracts as comments:} task contracts are added to the prompt only as comments.
-    \item \emph{Enforced contracts:} task contracts are written in the language and checked by the compiler, with violations reported back to the agent.
+    \item \emph{Contracts as comments:} task contracts added to the prompt only as comments.
+    \item \emph{Enforced contracts:} task contracts written in the language with violations reported back to the agent.
   \end{enumerate}
-  \item The evaluation \textbf{should} extend this comparison to the full task set, with several runs per task.
   \item If no API budget is available, or the pilot shows a ceiling effect, the evaluation \textbf{must} instead measure the proportion of incorrect LLM-generated solutions that contracts detect, how many at compile time, and how many correct solutions are wrongly flagged.
 \end{itemize}
 
@@ -116,7 +116,7 @@ Each requirement is given one of three priorities: \textbf{must} (essential), \t
 \end{itemize}
 
 \subsection{Out of Scope}
-Classes, asynchronous code, modules, closures, exceptions, mutable objects other than arrays and maps, aliasing, the full standard library, higher-order contracts, multi-function programs, and production-scale systems.
+Classes, asynchronous code, modules, closures, exceptions, mutable objects other than arrays and maps, a full standard library, higher-order contracts, and production-scale systems.
 
 The above requirements are subject to change as the project evolves.
 
