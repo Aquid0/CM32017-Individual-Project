@@ -24,11 +24,11 @@
 
 \section{Problem Description}
 
-Since the public availability of GitHub Copilot and ChatGPT in 2022, AI-assisted code generation has become a staple of software engineering, signalling a shift away from hand-written code. In 2026, Stack Overflow's Developer Survey reported that 83\% of respondents used AI tools at work \parencite{stackoverflow2026}. Furthermore, GitHub reports that the proportion of pull requests that are initially drafted by AI has more than doubled between March and September 2026 \parencite{github2026octoverse}.
+AI-assisted code generation has become a staple of software engineering. In 2026, 83\% of respondents to Stack Overflow's Developer Survey used AI tools at work \parencite{stackoverflow2026}, and GitHub reports that the proportion of pull requests initially drafted by AI more than doubled between March and September 2026 \parencite{github2026octoverse}.
 
-However, studies have shown that much AI-generated code can be incorrect, insecure, or both. For example, \textcite{vero2025baxbench} show that even OpenAI o1 may perform poorly when writing realistic software, with only 60\% code correctness. Additionally, across models, roughly half of correct programs still contained vulnerabilities.
+However, AI-generated code is often incorrect, insecure, or both. On BaxBench, a benchmark of realistic backend applications, the best-performing model at the time, OpenAI o1, produced correct code for only 62\% of tasks, and across models around half of the correct solutions contained security vulnerabilities \parencite{vero2025baxbench}.
 
-Trust in LLM output therefore remains a significant factor for AI adoption. Indeed, while 87\% of Stack Overflow survey respondents report some level of trust in AI's outputs, 48\% trust AI only when they can easily verify its output \parencite{stackoverflow2026}. 
+Trust in LLM output therefore remains a significant factor for AI adoption. Indeed, while 87\% of Stack Overflow survey respondents report some level of trust in AI's outputs, 48\% trust AI only when they can easily verify its output \parencite{stackoverflow2026}.
 
 One of the most common methods for developers to carry out this kind of verification for their software is unit testing. Even so, test-passing AI-generated software patches still contain errors at a noticeable rate, with 29.6\% of these patches behaving differently from the developers' real fix, and 28.6\% of these divergences containing incorrect code \parencite{wang2025solvedissues}.
 
@@ -36,23 +36,21 @@ More fundamentally, tests are a finite set of hand-picked inputs that inevitably
 
 \textcite{hoare1969axiomatic} gave this idea a formal basis, and formal verification can now guarantee that a program meets its specification for every possible input. However, these guarantees are expensive. The seL4 microkernel's roughly 8,700 lines of C required around 200,000 lines of Isabelle/HOL proof \parencite{klein2009sel4}, and a survey of 216 practitioners identifies scalability and the expertise required as key barriers to adoption \parencite{gleirscher2020formal}.
 
-Yet the idea at the core of verification, stating explicitly what a program should do and checking the code against that statement mechanically, need not carry this cost. Design by contract \parencite{meyer1992dbc} attaches such specifications to each function as preconditions and postconditions, making intended behaviour part of the code rather than leaving it implicit in a set of tests. This suits AI-generated code particularly well: the human states intent as contracts, the LLM writes the implementation, and a checker holds one to the other, the shift from writing code to specifying it that \textcite{kleppmann2025verification} argues AI will make necessary.
+Yet the idea at the core of verification, stating explicitly what a program should do and checking the code against that statement mechanically, need not carry this cost. Design by contract \parencite{meyer1992dbc} attaches such specifications to each function as preconditions and postconditions, making intended behaviour part of the code rather than leaving it implicit. This suits AI-generated code well: the human states intent as contracts, the LLM writes the implementation, and a checker holds one to the other.
 
 \subsection{Aims}
 
-Runtime contract systems, such as \textcite{findler2002contracts}, share the blind spot of tests, detecting violations only on given inputs. Static verifiers such as Dafny \parencite{leino2010dafny} cover every input, but require the programmer to give specifications and annotations until the verifier is satisfied. Gradual verification \parencite{bader2018gradual} addresses the weaknesses of each by proving what it can statically and checking the remainder at runtime. For LLM-generated code, existing work uses contracts mainly to guide generation through the prompt \parencite{wang2026vibecontract}, and while runtime checking that feeds violations back to the LLM has been proposed as a future direction, whether enforcing contracts helps beyond simply stating them remains untested.
+Runtime contract systems, such as \textcite{findler2002contracts}, share the blind spot of tests, detecting violations only on given inputs. Static verifiers such as Dafny \parencite{leino2010dafny} cover every input, but require the programmer to give specifications and annotations until the verifier is satisfied. Gradual verification \parencite{bader2018gradual} addresses the weaknesses of each by proving what it can statically and checking the remainder at runtime. For LLM-generated code, existing work primarily uses contracts to guide generation through the prompt, proposing runtime checking that feeds violations back to the LLM as future work \parencite{wang2026vibecontract}. Execution feedback is known to help LLMs repair their own code \parencite{chen2024selfdebug}, but whether enforcing contracts helps beyond simply stating them remains an open question.
 
 This project addresses this question. Its aims are to:
 
 \begin{itemize}
   \item Show that contracts can be enforced gradually in a JavaScript-like language, checked statically where possible and at runtime otherwise.
   \item Establish how much contract checking can be moved to compile time, and what enforcing the rest costs.
-  \item Find out whether enforcing contracts helps an LLM produce correct code, separate from the effect of enforcement from the information the contracts carry.
+  \item Find out whether enforcing contracts helps an LLM produce correct code, separating the effect of enforcement from the information the contracts carry.
 \end{itemize}
 
-JavaScript is chosen for two reasons. It is the most used programming language in the Stack Overflow Developer Survey, used by 62\% of respondents in 2026 \parencite{stackoverflow2026}, and LLMs are also highly familiar with it, so unfamiliar syntax should not confound the evaluation.
-
-The evaluation is scoped to the function level, the granularity at which contracts are written \parencite{meyer1992dbc}. Extending it to larger, multi-function programs is left as future work.
+JavaScript is chosen because it is the most used language in the Stack Overflow Developer Survey, used by 62\% of respondents \parencite{stackoverflow2026}, and LLMs are highly familiar with it, so unfamiliar syntax should not confound the evaluation. The evaluation is scoped to single functions, the granularity at which contracts are written \parencite{meyer1992dbc}.
 
 If enforcement helps, this supports building contracts into the tools developers use alongside AI coding agents. If not, it suggests that stating constraints matters more than enforcing them, which is useful to researchers designing specification-based workflows for AI-generated code.
 
@@ -60,9 +58,8 @@ If enforcement helps, this supports building contracts into the tools developers
 
 The project will deliver:
 \begin{itemize}
-  \item a compiler for the contract language, with a CLI and test suite
-  \item a static checker integrated into the compiler
-  \item an evaluation harness, task set and fixed contracts, with experimental results
+  \item a compiler for the contract language, with a CLI, test suite and static checker
+  \item an evaluation of the static checker and of the LLM experiment, with the harness, task set and contracts used
   \item the dissertation
 \end{itemize}
 
@@ -103,11 +100,10 @@ Each requirement is given one of three priorities: \textbf{must} (essential), \t
   \item The evaluation \textbf{must} measure the proportion of contracts decided at compile time, characterise those that cannot be decided, and measure the runtime overhead with no contract checks, all checks at runtime, and gradual checking.
   \item The evaluation \textbf{must} compare an LLM agent's hidden-test pass rate across three conditions on a pilot set of tasks, with the same model and task prompt in each condition:
   \begin{enumerate}
-    \item \emph{No contracts:} the agent is given only the task description.
-    \item \emph{Contracts as comments:} the task's contracts are added to the prompt as comments, but are not checked.
-    \item \emph{Enforced contracts:} the contracts are written in the language and checked by the compiler, statically where possible and at runtime otherwise, with violations reported back to the agent.
+    \item \emph{No contracts:} the agent has only the task description.
+    \item \emph{Contracts as comments:} task contracts are added to the prompt only as comments.
+    \item \emph{Enforced contracts:} task contracts are written in the language and checked by the compiler, with violations reported back to the agent.
   \end{enumerate}
-  Comparing conditions 1 and 2 measures the effect of the information the contracts carry, and comparing 2 and 3 measures the effect of enforcing them.
   \item The evaluation \textbf{should} extend this comparison to the full task set, with several runs per task.
   \item If no API budget is available, or the pilot shows a ceiling effect, the evaluation \textbf{must} instead measure the proportion of incorrect LLM-generated solutions that contracts detect, how many at compile time, and how many correct solutions are wrongly flagged.
 \end{itemize}
@@ -120,7 +116,7 @@ Each requirement is given one of three priorities: \textbf{must} (essential), \t
 \end{itemize}
 
 \subsection{Out of Scope}
-Classes, asynchronous code, modules, closures, exceptions, mutable objects other than arrays and maps, aliasing, the full standard library, higher-order contracts, and production-scale systems.
+Classes, asynchronous code, modules, closures, exceptions, mutable objects other than arrays and maps, aliasing, the full standard library, higher-order contracts, multi-function programs, and production-scale systems.
 
 The above requirements are subject to change as the project evolves.
 
@@ -213,7 +209,7 @@ Table~\ref{tab:tasks} gives the dates and estimated effort for each task in Figu
 \toprule
 \# & Task & Start & End & Buffer & Effort & After & Includes \\
 \midrule
-1 & Project proposal         & 12/10 & 06/11 &       & 25\,h  & --   & problem, requirements, plan \\
+1 & Project proposal         & 12/10 & 06/11 &       & 25\,h  & -   & problem, requirements, plan \\
 2 & Literature survey        & 02/11 & 04/12 &       & 40\,h  & 1    & related work, static analysis reading, benchmark and technology choices \\
 3 & Language and compiler    & 16/11 & 23/12 & 03/01 & 70\,h  & 1    & syntax, semantics, parser, JS output, runtime checks, blame, tests \\
 4 & Static analysis          & 07/12 & 12/03 & 26/03 & 115\,h & 3    & interval domain, transfer functions, widening, soundness tests \\
@@ -224,7 +220,7 @@ Table~\ref{tab:tasks} gives the dates and estimated effort for each task in Figu
 9 & Editing and submission   & 12/04 & 30/04 &       & 25\,h  & 8    & revisions, proofreading, submission \\
 \bottomrule
 \end{tabularx}
-\caption{Tasks, dates and estimated effort. End dates act as waypoints, \emph{Buffer} is the end of each task's contingency time (hatched in Figure~\ref{fig:gantt}), and \emph{After} lists the tasks each one builds on.}
+\caption{Tasks, dates and estimated effort. End dates act as waypoints, \emph{Buffer} is the end of each task's contingency time (hatched in Figure~\ref{fig:gantt}), and \emph{After} lists the tasks each one builds on, which may still be in progress.}
 \label{tab:tasks}
 \end{table}
 
@@ -247,12 +243,11 @@ Static analysis takes longer than planned & Medium & High & Contingency until 26
 Other tasks overrun, including through illness & Medium & Medium & Contingency on the compiler and experiments, and Should and May requirements dropped before Musts \\
 No API budget & Medium & High & Open-weight models run on the department's GPU cloud instead \newline \emph{Alternative end-point:} offline detection study on existing LLM solutions \\
 Ceiling effect, where the model already solves nearly every task & Medium & Medium & Detected early by the pilot, then addressed with harder tasks or a weaker model \newline \emph{Alternative end-point:} offline detection study \\
-Static checker is unsound & Low & High & Property-based soundness testing, and all runtime checks kept on during experiments \\
+Static checker is unsound & Low & High & Property-based soundness testing, and runtime checks kept on for proven contracts during the LLM experiments, so unsoundness is detected rather than skewing results \\
 Benchmark unavailable in JavaScript & Medium & Low & Test inputs and outputs translated, which is largely mechanical, with the benchmark chosen during the literature survey \\
-PC failure or data loss & Low & High & Code on GitHub and the write-up under version control, so work can continue on any machine \\
 \bottomrule
 \end{tabularx}
-\caption{Risks, their likelihood and impact, and how each will be mitigated.}
+\caption{Project risks.}
 \label{tab:risks}
 \end{table}
 
@@ -275,7 +270,8 @@ Commercial LLM API & Agent experiment & Budget requested \\
 Hex GPU cloud & Open-weight models & Department \\
 Benchmark, such as EvalPlus & Tasks and hidden tests & Free \\
 Supervisor & Semantics expertise & Fortnightly meetings \\
-\textcite{moller2026spa} & Static program analysis Textbook & Free \\
+\textcite{moller2026spa} & Interval analysis and widening & Free online \\
+Logic and Semantics unit & Formal semantics and soundness argument & Semester 2 \\
 \bottomrule
 \end{tabular}
 \caption{Resources, sources of expertise and their availability.}
