@@ -40,12 +40,12 @@ Yet the idea at the core of verification, stating explicitly what a program shou
 
 \subsection{Aims}
 
-Runtime contract systems, such as \textcite{findler2002contracts}, share the blind spot of tests, detecting violations only on given inputs. Static verifiers such as Dafny \parencite{leino2010dafny} cover every input, but require the programmer to give specifications and annotations until the verifier is satisfied. Gradual verification \parencite{bader2018gradual} addresses the weaknesses of each by proving what it can statically and checking the remainder at runtime. For LLM-generated code, existing work primarily uses contracts to guide generation through the prompt, proposing runtime checking that feeds violations back to the LLM as future work \parencite{wang2026vibecontract}. Execution feedback is known to help LLMs repair their own code \parencite{chen2024selfdebug}, but whether enforcing contracts helps beyond simply stating them remains an open question.
+Runtime contract systems, such as \textcite{findler2002contracts}, share the blind spot of tests, detecting violations only on given inputs. Static verifiers such as Dafny \parencite{leino2010dafny} cover every input, but require the programmer to give specifications and annotations until the verifier is satisfied. Gradual verification \parencite{bader2018gradual} addresses the weaknesses of each by proving what it can statically and checking the remainder at runtime, which has been achieved by Microsoft's Code Contracts for .NET \parencite{fahndrich2010clousot}, but before LLM-generated code. For LLM-generated code, existing work primarily uses contracts to guide generation through the prompt, proposing runtime checking that feeds violations back to the LLM as future work \parencite{wang2026vibecontract}. Execution feedback is known to help LLMs repair their own code \parencite{chen2024selfdebug}, but whether enforcing contracts helps beyond simply stating them remains an open question.
 
 This project addresses this question. Its aims are to:
 
 \begin{itemize}
-  \item Show that contracts can be enforced gradually in a JavaScript-like language, checked statically where possible and at runtime otherwise.
+  \item Build a JavaScript-like language in which contracts are checked statically where possible and at runtime otherwise.
   \item Establish how much contract checking can be moved to compile time, and what enforcing the rest costs.
   \item Find out whether enforcing contracts helps an LLM produce correct code, separating the effect of enforcement from the information the contracts carry.
 \end{itemize}
@@ -224,7 +224,7 @@ Table~\ref{tab:tasks} gives the dates and estimated effort for each task in Figu
 \label{tab:tasks}
 \end{table}
 
-By the progress demonstration on 15/02, the compiler will transpile programs with runtime contract checking and blame (task 3), the static checker will classify contracts in loop-free code (the \textbf{must} part of task 4), and the experiment harness will be running on its first benchmark tasks (task 6).
+By the progress demonstration on 15/02, the compiler will transpile programs with runtime contract checking and blame (task 3), the static checker will classify contracts in loop-free code (task 4), and the experiment harness will be running on its first benchmark tasks (task 6).
 
 \subsection{Risk Assessment}
 
@@ -241,7 +241,7 @@ Risk & Likelihood & Impact & Mitigation \\
 \midrule
 Static analysis takes longer than planned & Medium & High & Contingency until 26/03, with the SMT extension dropped first \newline \emph{Alternative end-point:} drop loops and evaluate the loop-free checker alone \\
 Other tasks overrun, including through illness & Medium & Medium & Contingency on the compiler and experiments, and Should and May requirements dropped before Musts \\
-No API budget & Medium & High & Open-weight models run on the department's GPU cloud instead \newline \emph{Alternative end-point:} offline detection study on existing LLM solutions \\
+No API budget & Low & High & Open-weight models run on the department's GPU cloud instead \newline \emph{Alternative end-point:} offline detection study on existing LLM solutions \\
 Ceiling effect, where the model already solves nearly every task & Medium & Medium & Detected early by the pilot, then addressed with harder tasks or a weaker model \newline \emph{Alternative end-point:} offline detection study \\
 Static checker is unsound & Low & High & Property-based soundness testing, and runtime checks kept on for proven contracts during the LLM experiments, so unsoundness is detected rather than skewing results \\
 Benchmark unavailable in JavaScript & Medium & Low & Test inputs and outputs translated, which is largely mechanical, with the benchmark chosen during the literature survey \\
